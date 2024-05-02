@@ -99,7 +99,7 @@ vim.g.maplocalleader = ' '
 vim.opt.number = true
 -- You can also add relative line numbers, for help with jumping.
 --  Experiment for yourself to see if you like it!
--- vim.opt.relativenumber = true
+vim.opt.relativenumber = true
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.opt.mouse = 'a'
@@ -148,11 +148,28 @@ vim.opt.cursorline = true
 -- Minimal number of screen lines to keep above and below the cursor.
 vim.opt.scrolloff = 10
 
+-- For pywal to work and transparency
+vim.opt.termguicolors = true
+
+vim.opt.tabstop = 4
+vim.opt.shiftwidth = 4
+vim.opt.expandtab = true
+
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
 
 -- Set highlight on search, but clear on pressing <Esc> in normal mode
 vim.opt.hlsearch = true
+vim.keymap.set('n', '<leader>f', function()
+  vim.cmd 'Explore'
+end, { desc = 'Open Netrw in current directory' })
+vim.keymap.set('n', '<leader>vf', function()
+  vim.cmd 'Vexplore'
+end, { desc = 'Open Netrw in vertical split' })
+vim.keymap.set('n', '<leader>sf', function()
+  vim.cmd 'Sexplore'
+end, { desc = 'Open Netrw in horizontal split' })
+
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
 -- Diagnostic keymaps
@@ -198,6 +215,16 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   end,
 })
 
+local uv = vim.loop
+
+vim.api.nvim_create_autocmd('VimEnter', {
+  callback = function()
+    if vim.env.TMUX_PLUGIN_MANAGER_PATH then
+      uv.spawn(vim.env.TMUX_PLUGIN_MANAGER_PATH .. '/tmux-window-name/scripts/rename_session_windows.py', {})
+    end
+  end,
+})
+
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
 local lazypath = vim.fn.stdpath 'data' .. '/lazy/lazy.nvim'
@@ -207,6 +234,20 @@ if not vim.loop.fs_stat(lazypath) then
 end ---@diagnostic disable-next-line: undefined-field
 vim.opt.rtp:prepend(lazypath)
 
+-- Setting custom package paths for Neovim to recognize LuaRocks installed packages
+local lua_path =
+  '/home/chibolo/.luaenv/versions/5.1.5/share/lua/5.1/?.lua;/home/chibolo/.luaenv/versions/5.1.5/share/lua/5.1/?/init.lua;/home/chibolo/.luarocks/share/lua/5.1/?.lua;/home/chibolo/.luarocks/share/lua/5.1/?/init.lua;./?.lua;/home/chibolo/.luaenv/versions/5.1.5/lib/lua/5.1/?.lua;/home/chibolo/.luaenv/versions/5.1.5/lib/lua/5.1/?/init.lua;'
+local lua_cpath =
+  '/home/chibolo/.luaenv/versions/5.1.5/lib/lua/5.1/?.so;/home/chibolo/.luarocks/lib/lua/5.1/?.so;./?.so;/home/chibolo/.luaenv/versions/5.1.5/lib/lua/5.1/loadall.so;'
+
+-- Append the LuaRocks paths to the Lua package path
+package.path = package.path .. ';' .. lua_path
+package.cpath = package.cpath .. ';' .. lua_cpath
+
+local lib_path = '/usr/lib64/lib?.so;'
+package.cpath = package.cpath .. ';' .. lib_path
+
+vim.g.python3_host_prog = '/home/chibolo/.virtualenvs/neovim/bin/python'
 -- [[ Configure and install plugins ]]
 --
 --  To check the current status of your plugins, run
@@ -219,6 +260,43 @@ vim.opt.rtp:prepend(lazypath)
 --
 -- NOTE: Here is where you install your plugins.
 require('lazy').setup {
+  -- Pywal plugin for adaptive colorscheme
+  -- { 'AlphaTechnolog/pywal.nvim', opts = {} },
+
+  -- Transparent background plugin
+  {
+    'xiyaowong/transparent.nvim',
+    opts = {
+      groups = { -- table: default groups
+        'Normal',
+        'NormalNC',
+        'Comment',
+        'Constant',
+        'Special',
+        'Identifier',
+        'Statement',
+        'PreProc',
+        'Type',
+        'Underlined',
+        'Todo',
+        'String',
+        'Function',
+        'Conditional',
+        'Repeat',
+        'Operator',
+        'Structure',
+        'LineNr',
+        'NonText',
+        'SignColumn',
+        'CursorLine',
+        'CursorLineNr',
+        'StatusLine',
+        'StatusLineNC',
+        'EndOfBuffer',
+      },
+    },
+  },
+
   -- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
   'tpope/vim-sleuth', -- Detect tabstop and shiftwidth automatically
 
@@ -315,7 +393,7 @@ require('lazy').setup {
       -- Useful for getting pretty icons, but requires special font.
       --  If you already have a Nerd Font, or terminal set up with fallback fonts
       --  you can enable this
-      -- { 'nvim-tree/nvim-web-devicons' }
+      { 'nvim-tree/nvim-web-devicons' },
     },
     config = function()
       -- Telescope is a fuzzy finder that comes with a lot of different things that
@@ -711,6 +789,7 @@ require('lazy').setup {
           { name = 'nvim_lsp' },
           { name = 'luasnip' },
           { name = 'path' },
+          { name = 'otter' },
         },
       }
     end,
@@ -721,15 +800,15 @@ require('lazy').setup {
     -- change the command in the config to whatever the name of that colorscheme is
     --
     -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`
-    'folke/tokyonight.nvim',
+    'AlphaTechnolog/pywal.nvim',
     lazy = false, -- make sure we load this during startup if it is your main colorscheme
     priority = 1000, -- make sure to load this before all the other start plugins
     config = function()
       -- Load the colorscheme here
-      vim.cmd.colorscheme 'tokyonight-night'
+      -- vim.cmd.colorscheme 'pywal'
 
       -- You can configure highlights by doing something like
-      vim.cmd.hi 'Comment gui=none'
+      -- vim.cmd.hi 'Comment gui=none'
     end,
   },
 
@@ -757,16 +836,33 @@ require('lazy').setup {
       -- Simple and easy statusline.
       --  You could remove this setup call if you don't like it,
       --  and try some other statusline plugin
-      local statusline = require 'mini.statusline'
-      statusline.setup()
-
-      -- You can configure sections in the statusline by overriding their
-      -- default behavior. For example, here we disable the section for
-      -- cursor information because line numbers are already enabled
-      ---@diagnostic disable-next-line: duplicate-set-field
-      statusline.section_location = function()
-        return ''
-      end
+      -- local m = require 'mini.statusline'
+      -- m.setup {
+      --   -- Content of statusline as functions which return statusline string. See
+      --   -- `:h statusline` and code of default contents (used instead of `nil`).
+      --   content = {
+      --     -- Content for active window
+      --     active = nil,
+      --     -- Content for inactive window(s)
+      --     inactive = nil,
+      --   },
+      --
+      --   -- Whether to use icons by default
+      --   use_icons = true,
+      --
+      --   -- Whether to set Vim's settings for statusline (make it always shown with
+      --   -- 'laststatus' set to 2). To use global statusline in Neovim>=0.7.0, set
+      --   -- this to `false` and 'laststatus' to 3.
+      --   set_vim_settings = true,
+      -- }
+      --
+      -- -- You can configure sections in the statusline by overriding their
+      -- -- default behavior. For example, here we disable the section for
+      -- -- cursor information because line numbers are already enabled
+      -- ---@diagnostic disable-next-line: duplicate-set-field
+      -- m.section_location = function()
+      --   return ''
+      -- end
 
       -- ... and there is more!
       --  Check out: https://github.com/echasnovski/mini.nvim
@@ -786,15 +882,346 @@ require('lazy').setup {
         auto_install = true,
         highlight = { enable = true },
         indent = { enable = true },
+        textobjects = {
+          move = {
+            enable = true,
+            set_jumps = false, -- you can change this if you want.
+            goto_next_start = {
+              --- ... other keymaps
+              [']b'] = { query = '@code_cell.inner', desc = 'next code block' },
+            },
+            goto_previous_start = {
+              --- ... other keymaps
+              ['[b'] = { query = '@code_cell.inner', desc = 'previous code block' },
+            },
+          },
+          select = {
+            enable = true,
+            lookahead = true, -- you can change this if you want
+            keymaps = {
+              --- ... other keymaps
+              ['ib'] = { query = '@code_cell.inner', desc = 'in block' },
+              ['ab'] = { query = '@code_cell.outer', desc = 'around block' },
+            },
+          },
+          swap = { -- Swap only works with code blocks that are under the same
+            -- markdown header
+            enable = true,
+            swap_next = {
+              --- ... other keymap
+              ['<leader>sbl'] = '@code_cell.outer',
+            },
+            swap_previous = {
+              --- ... other keymap
+              ['<leader>sbh'] = '@code_cell.outer',
+            },
+          },
+        },
       }
 
       -- There are additional nvim-treesitter modules that you can use to interact
       -- with nvim-treesitter. You should go explore a few and see what interests you:
       --
       --    - Incremental selection: Included, see `:help nvim-treesitter-incremental-selection-mod`
-      --    - Show your current context: https://github.com/nvim-treesitter/nvim-treesitter-context
+      --    - Show your current context: https://github.com/nvim-treesitter/nvim-treesitter-conte
       --    - Treesitter + textobjects: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
     end,
+  },
+  {
+    'feline-nvim/feline.nvim',
+    config = function()
+      local present, feline = pcall(require, 'feline')
+      if not present then
+        return
+      end
+
+      vim.cmd [[hi Normal guibg=NONE ctermbg=NONE]]
+      local pywal_present, pywal_feline = pcall(require, 'pywal.feline')
+
+      if not pywal_present then
+        return
+      end
+
+      feline.setup {
+        components = pywal_feline,
+      }
+    end,
+  },
+
+  {
+    'https://git.sr.ht/~swaits/colorsaver.nvim',
+    lazy = true,
+    event = 'VimEnter',
+    opts = {
+      filename = 'colors-wal.vim',
+    },
+  },
+
+  {
+    'ThePrimeagen/harpoon',
+    branch = 'harpoon2',
+    dependencies = { 'nvim-lua/plenary.nvim' },
+    config = function()
+      require('harpoon'):setup()
+    end,
+    keys = {
+      {
+        '<leader>m',
+        function()
+          require('harpoon'):list():append()
+        end,
+        desc = 'harpoon file',
+      },
+      {
+        '<leader>a',
+        function()
+          local harpoon = require 'harpoon'
+          harpoon.ui:toggle_quick_menu(harpoon:list())
+        end,
+        desc = 'harpoon quick menu',
+      },
+      {
+        '<leader>1',
+        function()
+          require('harpoon'):list():select(1)
+        end,
+        desc = 'harpoon to file 1',
+      },
+      {
+        '<leader>2',
+        function()
+          require('harpoon'):list():select(2)
+        end,
+        desc = 'harpoon to file 2',
+      },
+      {
+        '<leader>3',
+        function()
+          require('harpoon'):list():select(3)
+        end,
+        desc = 'harpoon to file 3',
+      },
+      {
+        '<leader>4',
+        function()
+          require('harpoon'):list():select(4)
+        end,
+        desc = 'harpoon to file 4',
+      },
+      {
+        '<leader>5',
+        function()
+          require('harpoon'):list():select(5)
+        end,
+        desc = 'harpoon to file 5',
+      },
+    },
+  },
+
+  {
+    'folke/trouble.nvim',
+    dependencies = { 'nvim-tree/nvim-web-devicons' },
+    opts = {
+      -- your configuration comes here
+      -- or leave it empty to use the default settings
+      -- refer to the configuration section below
+    },
+  },
+
+  {
+    'jiaoshijie/undotree',
+    dependencies = 'nvim-lua/plenary.nvim',
+    config = true,
+    keys = { -- load the plugin only when using it's keybinding:
+      { '<leader>u', "<cmd>lua require('undotree').toggle()<cr>" },
+    },
+  },
+  {
+    'stevearc/aerial.nvim',
+    opts = {},
+    -- Optional dependencies
+    dependencies = {
+      'nvim-treesitter/nvim-treesitter',
+      'nvim-tree/nvim-web-devicons',
+    },
+  },
+  {
+    'Wansmer/symbol-usage.nvim',
+    event = 'BufReadPre', -- need run before LspAttach if you use nvim 0.9. On 0.10 use 'LspAttach'
+    config = function()
+      require('symbol-usage').setup()
+    end,
+  },
+  -- {
+  --   'jmbuhr/otter.nvim',
+  --   opts = {},
+  --   dependencies = {
+  --     'hrsh7th/nvim-cmp',
+  --     'neovim/nvim-lspconfig',
+  --     'nvim-treesitter/nvim-treesitter',
+  --   },
+  -- },
+  {
+    'kylechui/nvim-surround',
+    version = '*', -- Use for stability; omit to use `main` branch for the latest features
+    event = 'VeryLazy',
+    config = function()
+      require('nvim-surround').setup {
+        -- Configuration here, or leave empty to use defaults
+      }
+    end,
+  },
+  {
+    'AckslD/nvim-neoclip.lua',
+    dependencies = {
+      'kkharji/sqlite.lua',
+      'nvim-telescope/telescope.nvim',
+    },
+    config = function()
+      require('neoclip').setup()
+      vim.api.nvim_set_keymap('n', '<leader>n', ':Telescope neoclip<CR>', { noremap = true, silent = true })
+    end,
+  },
+  {
+    'chentoast/marks.nvim',
+    opts = {},
+  },
+  {
+    'uga-rosa/ccc.nvim',
+    opts = {},
+  },
+  {
+    'ecthelionvi/NeoColumn.nvim',
+    opts = {},
+  },
+
+  -- Figure out highlight groups for this, its bad rn
+  -- { 'akinsho/bufferline.nvim', opts = {} },
+  {
+    'goolord/alpha-nvim',
+    config = function()
+      require('alpha').setup(require('alpha.themes.dashboard').config)
+    end,
+  },
+  {
+    'Shatur/neovim-session-manager',
+    opts = {},
+  },
+
+  {
+    'samharju/yeet.nvim',
+    dependencies = {
+      'stevearc/dressing.nvim', -- optional, provides sane UX
+    },
+    cmd = 'Yeet',
+    opts = {},
+  },
+  {
+    '3rd/image.nvim',
+    opts = {
+      backend = 'ueberzug',
+      integrations = {}, -- do whatever you want with image.nvim's integrations
+      max_width = 100, -- tweak to preference
+      max_height = 12, -- ^
+      max_height_window_percentage = math.huge, -- this is necessary for a good experience
+      max_width_window_percentage = math.huge,
+      window_overlap_clear_enabled = true,
+      window_overlap_clear_ft_ignore = { 'cmp_menu', 'cmp_docs', '' },
+    },
+  },
+  {
+    'benlubas/molten-nvim',
+    version = '^1.0.0', -- use version <2.0.0 to avoid breaking changes
+    dependencies = { '3rd/image.nvim' },
+    build = ':UpdateRemotePlugins',
+    init = function()
+      -- these are examples, not defaults. Please see the readme
+      vim.g.molten_image_provider = 'image.nvim'
+      vim.g.molten_output_win_max_height = 20
+      -- optional, I like wrapping. works for virt text and the output window
+      vim.g.molten_wrap_output = true
+
+      -- Output as virtual text. Allows outputs to always be shown, works with images, but can
+      -- be buggy with longer images
+      vim.g.molten_virt_text_output = true
+
+      -- this will make it so the output shows up below the \`\`\` cell delimiter
+      vim.g.molten_virt_lines_off_by_1 = true
+
+      vim.keymap.set('n', '<localleader>e', ':MoltenEvaluateOperator<CR>', { desc = 'evaluate operator', silent = true })
+      vim.keymap.set('n', '<localleader>os', ':noautocmd MoltenEnterOutput<CR>', { desc = 'open output window', silent = true })
+      vim.keymap.set('n', '<localleader>rr', ':MoltenReevaluateCell<CR>', { desc = 're-eval cell', silent = true })
+      vim.keymap.set('v', '<localleader>r', ':<C-u>MoltenEvaluateVisual<CR>gv', { desc = 'execute visual selection', silent = true })
+      vim.keymap.set('n', '<localleader>oh', ':MoltenHideOutput<CR>', { desc = 'close output window', silent = true })
+      vim.keymap.set('n', '<localleader>md', ':MoltenDelete<CR>', { desc = 'delete Molten cell', silent = true })
+
+      -- if you work with html outputs:
+      vim.keymap.set('n', '<localleader>mx', ':MoltenOpenInBrowser<CR>', { desc = 'open output in browser', silent = true })
+    end,
+  },
+  {
+    'quarto-dev/quarto-nvim',
+    ft = { 'quarto', 'markdown' },
+    config = function()
+      local quarto = require 'quarto'
+      quarto.setup {
+        lspFeatures = {
+          -- NOTE: put whatever languages you want here:
+          languages = { 'r', 'python', 'rust' },
+          chunks = 'all',
+          diagnostics = {
+            enabled = true,
+            triggers = { 'BufWritePost' },
+          },
+          completion = {
+            enabled = true,
+          },
+        },
+        keymap = {
+          -- NOTE: setup your own keymaps:
+          hover = 'K',
+          definition = 'gd',
+          rename = '<leader>rn',
+          references = 'gr',
+          format = '<leader>gf',
+        },
+        codeRunner = {
+          enabled = true,
+          default_method = 'molten',
+        },
+      }
+      local runner = require 'quarto.runner'
+      vim.keymap.set('n', '<localleader>rc', runner.run_cell, { desc = 'run cell', silent = true })
+      vim.keymap.set('n', '<localleader>ra', runner.run_above, { desc = 'run cell and above', silent = true })
+      vim.keymap.set('n', '<localleader>rA', runner.run_all, { desc = 'run all cells', silent = true })
+      vim.keymap.set('n', '<localleader>rl', runner.run_line, { desc = 'run line', silent = true })
+      vim.keymap.set('v', '<localleader>r', runner.run_range, { desc = 'run visual range', silent = true })
+      vim.keymap.set('n', '<localleader>RA', function()
+        runner.run_all(true)
+      end, { desc = 'run all cells of all languages', silent = true })
+      vim.keymap.set('n', '<localleader>qp', quarto.quartoPreview, { desc = 'Preview the Quarto document', silent = true, noremap = true })
+      -- to create a cell in insert mode, I have the ` snippet
+      vim.keymap.set('n', '<localleader>cc', 'i`<c-j>', { desc = 'Create a new code cell', silent = true })
+      vim.keymap.set('n', '<localleader>cs', 'i```\r\r```{}<left>', { desc = 'Split code cell', silent = true, noremap = true })
+    end,
+    dependencies = {
+      {
+        'jmbuhr/otter.nvim',
+        opts = {
+          handle_leading_whitespace = true,
+          lsp = {
+            hover = { border = 'none' },
+          },
+        },
+      },
+      'nvim-cmp',
+      'neovim/nvim-lspconfig',
+      'nvim-treesitter/nvim-treesitter',
+    },
+  },
+
+  {
+    'mg979/vim-visual-multi',
   },
 
   -- The following two comments only work if you have downloaded the kickstart repo, not just copy pasted the
@@ -807,7 +1234,7 @@ require('lazy').setup {
   --  Uncomment any of the lines below to enable them (you will need to restart nvim).
   --
   -- require 'kickstart.plugins.debug',
-  -- require 'kickstart.plugins.indent_line',
+  require 'kickstart.plugins.indent_line',
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.
